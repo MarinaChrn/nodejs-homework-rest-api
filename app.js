@@ -12,6 +12,10 @@ app.use(logger(formatsLogger))
 app.use(cors())
 app.use(express.json())
 
+app.get('/', (req, res) => {
+  res.send('Hello World!');
+});
+
 app.use('/api/contacts', contactsRouter)
 
 app.use((req, res) => {
@@ -21,5 +25,9 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   res.status(500).json({ message: err.message })
 })
+
+app.listen(8080, () => {
+  console.log("Server running at http://localhost:8080");
+});
 
 module.exports = app
