@@ -12,6 +12,8 @@ app.use(logger(formatsLogger))
 app.use(cors())
 app.use(express.json())
 
+require("./db");
+
 app.use('/api/contacts', contactsRouter)
 
 app.use((req, res) => {
@@ -19,11 +21,11 @@ app.use((req, res) => {
 })
 
 app.use((error, req, res, next) => {
-  console.log(error);
+  console.log(error.message)
   res.status(500).json("Server error")
 })
 
-app.listen(8080, () => {
+app.listen(8000, () => {
   console.log("Server running at http://localhost:8080");
 });
 
