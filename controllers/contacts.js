@@ -1,12 +1,5 @@
 const Contact = require("../models/contact");
-
-const validationError = (res, error) => {
-  let messages = "";
-  for (const element in error.errors) {
-    messages += `${error.errors[element].message}\n`;
-  }
-  res.status(400).send(messages);
-};
+const contactSchema = require("../schemas/contact");
 
 const listContacts = async (__, res, next) => {
   try {
@@ -56,12 +49,16 @@ const addContact = async (req, res, next) => {
       favorite: req.body.favorite,
     };
 
+    const response = contactSchema.validate(req.body, { convert: false });
+
+    if (typeof response.error !== "undefined") {
+      return res.status(400).json({ message: response.error.message });
+    }
+
     const result = await Contact.create(contact);
     return res.status(201).send(result);
   } catch (error) {
-    if (error.message.includes("validation")) {
-      validationError(res, error);
-    } else return next(error);
+    return next(error);
   }
 };
 
@@ -76,6 +73,12 @@ const updateContact = async (req, res, next) => {
   };
 
   try {
+    const response = contactSchema.validate(req.body, { convert: false });
+
+    if (typeof response.error !== "undefined") {
+      return res.status(400).json({ message: response.error.message });
+    }
+
     const result = await Contact.findByIdAndUpdate(id, contact, { new: true });
 
     if (!result) {
@@ -84,9 +87,7 @@ const updateContact = async (req, res, next) => {
 
     return res.send(result);
   } catch (error) {
-    if (error.message.includes("validation")) {
-      validationError(res, error);
-    } else return next(error);
+    return next(error);
   }
 };
 
