@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const { model } = require("mongoose");
+const { model, Schema } = require("mongoose");
 
 const nameRegexp = /^[a-zA-Zа-яА-Я]+(([' -][a-zA-Zа-яА-Я ])?[a-zA-Zа-яА-Я]*)*$/;
 const phoneRegexp =
@@ -25,10 +25,14 @@ const contactSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    ownerId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+    },
   },
   {
     versionKey: false,
-  },
+  }
 );
 
 const Contact = model("contact", contactSchema);
