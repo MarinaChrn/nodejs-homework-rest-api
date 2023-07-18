@@ -1,9 +1,15 @@
 const Contact = require("../models/contact");
 const contactSchema = require("../schemas/contact");
 
-const listContacts = async (__, res, next) => {
+const listContacts = async (req, res, next) => {
   try {
-    const contacts = await Contact.find();
+    const { page = 1, limit = 20, favorite } = req.query;
+    const skip = (page - 1) * limit;
+    const contacts = await Contact.find(
+      favorite ? { favorite, ownerId: req.user.id } : { ownerId: req.user.id }
+    )
+      .skip(skip)
+      .limit(limit);
     return res.status(200).send(contacts);
   } catch (error) {
     return next(error);
@@ -13,7 +19,7 @@ const listContacts = async (__, res, next) => {
 const getContactById = async (req, res, next) => {
   const { id } = req.params;
   try {
-    const contact = await Contact.findById(id);
+    const contact = await Contact.findOne({ _id: id, ownerId: req.user.id });
 
     if (contact === null) {
       return res.status(404).send("Contact not found");
@@ -28,7 +34,10 @@ const getContactById = async (req, res, next) => {
 const removeContact = async (req, res, next) => {
   const { id } = req.params;
   try {
-    const result = await Contact.findByIdAndRemove(id);
+    const result = await Contact.findOneAndRemove({
+      _id: id,
+      ownerId: req.user.id,
+    });
 
     if (result === null) {
       return res.status(404).send("Contact not found");
@@ -55,7 +64,7 @@ const addContact = async (req, res, next) => {
       return res.status(400).json({ message: response.error.message });
     }
 
-    const result = await Contact.create(contact);
+    const result = await Contact.create({ ...contact, ownerId: req.user.id });
     return res.status(201).send(result);
   } catch (error) {
     return next(error);
@@ -79,7 +88,11 @@ const updateContact = async (req, res, next) => {
       return res.status(400).json({ message: response.error.message });
     }
 
-    const result = await Contact.findByIdAndUpdate(id, contact, { new: true });
+    const result = await Contact.findOneAndUpdate(
+      { _id: id, ownerId: req.user.id },
+      contact,
+      { new: true }
+    );
 
     if (!result) {
       return res.status(404).send("Contact not found");
@@ -95,7 +108,11 @@ const updateStatusContact = async (req, res, next) => {
   const { id } = req.params;
   const { body } = req;
   try {
-    const result = await Contact.findByIdAndUpdate(id, body, { new: true });
+    const result = await Contact.findOneAndUpdate(
+      { _id: id, ownerId: req.user.id },
+      body,
+      { new: true }
+    );
 
     if (!result) {
       return res.status(404).send("Contact not found");
