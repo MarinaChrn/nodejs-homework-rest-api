@@ -16,6 +16,8 @@ require("./db");
 
 app.use("/api", routes);
 
+app.use(express.static("public"));
+
 app.use((req, res) => {
   res.status(404).json({ message: "Not found" });
 });
@@ -26,7 +28,7 @@ app.use((error, req, res, next) => {
 });
 
 app.listen(8000, () => {
-  console.log("Server running at http://localhost:8080");
+  console.log("Server running at http://localhost:8000");
 });
 
 module.exports = app;

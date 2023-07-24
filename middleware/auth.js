@@ -14,7 +14,7 @@ const auth = async (req, res, next) => {
 
   const [bearer, token] = authHeader.split(" ");
 
-  if (bearer !== "Bearer") {
+  if (bearer !== "Bearer" || !token) {
     return res.status(401).json({ error: "Not authorized" });
   }
 
