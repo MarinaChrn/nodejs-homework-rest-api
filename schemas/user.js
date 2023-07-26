@@ -10,6 +10,7 @@ const userSchema = Joi.object({
   subscription: Joi.string()
     .default("starter")
     .valid("starter", "pro", "business"),
+  avatarURL: Joi.string(),
   token: Joi.string().default(null),
 });
 
