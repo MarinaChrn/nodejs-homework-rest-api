@@ -1,4 +1,3 @@
-const { verify } = require("crypto");
 const express = require("express");
 const {
   registered,
@@ -7,6 +6,8 @@ const {
   getCurrent,
   updateSubscription,
   updateAvatar,
+  verify,
+  newVerify,
 } = require("../controllers/auth");
 const auth = require("../middleware/auth");
 const upload = require("../middleware/upload");
@@ -18,6 +19,7 @@ router.post("/logout", auth, logout);
 router.get("/current", auth, getCurrent);
 router.patch("/", auth, updateSubscription);
 router.patch("/avatars", auth, upload.single("avatar"), updateAvatar);
-router.get("/verify/:token", verify);
+router.get("/verify/:verificationToken", verify);
+router.post("/verify", newVerify);
 
 module.exports = router;

@@ -12,6 +12,8 @@ const userSchema = Joi.object({
     .valid("starter", "pro", "business"),
   avatarURL: Joi.string(),
   token: Joi.string().default(null),
+  verified: Joi.bool().default(false),
+  verificationToken: Joi.string().default(null),
 });
 
 const subscriptionSchema = Joi.object({
@@ -23,4 +25,10 @@ const subscriptionSchema = Joi.object({
     }),
 });
 
-module.exports = { userSchema, subscriptionSchema };
+const emailSchema = Joi.object({
+  email: Joi.string()
+    .required()
+    .messages({ "any.required": "missing required email field" }),
+});
+
+module.exports = { userSchema, subscriptionSchema, emailSchema };

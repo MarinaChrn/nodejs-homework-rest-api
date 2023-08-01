@@ -3,7 +3,11 @@ const crypto = require("node:crypto");
 const bcrypt = require("bcrypt");
 const gravatar = require("gravatar");
 require("dotenv").config();
-const { userSchema, subscriptionSchema } = require("../schemas/user");
+const {
+  userSchema,
+  subscriptionSchema,
+  emailSchema,
+} = require("../schemas/user");
 const jwt = require("jsonwebtoken");
 const Jimp = require("jimp");
 const path = require("path");
@@ -30,7 +34,7 @@ const registered = async (req, res, next) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const verifyToken = crypto.randomUUID();
+    const verificationToken = crypto.randomUUID();
 
     const imgUrl = `${gravatar.url(
       email
@@ -40,14 +44,14 @@ const registered = async (req, res, next) => {
       email,
       password: passwordHash,
       avatarURL: imgUrl,
-      verifyToken,
+      verificationToken,
     });
 
     await sendEmail({
       to: email,
       subject: `Welcome!`,
-      html: `Click on the link below to confirm your registration: <a href"http://localhost:8000/api/users/verify/${verifyToken}">Click</a>`,
-      text: `Open the link below to confirm your registration: http://localhost:8000/api/users/verify/${verifyToken}`,
+      html: `Click on the link below to confirm your registration: <a href"http://localhost:8000/api/users/verify/${verificationToken}">Click</a>`,
+      text: `Open the link below to confirm your registration: http://localhost:8000/api/users/verify/${verificationToken}`,
     });
 
     return res.status(201).json({ user: { email, subscription: "starter" } });
@@ -162,7 +166,6 @@ const updateAvatar = async (req, res, next) => {
 
   await fs.rename(tempUpload, publicUpload);
 
-  console.log(fileName);
   const avatarURL = path.join("avatars", fileName);
 
   await User.findByIdAndUpdate(id, { avatarURL });
@@ -171,20 +174,53 @@ const updateAvatar = async (req, res, next) => {
 };
 
 const verify = async (req, res, next) => {
-  const { token } = req.params;
+  const { verificationToken } = req.params;
 
   try {
-    const user = await User.findOne({ verifyToken: token });
+    const user = await User.findOne({ verificationToken: verificationToken });
     if (!user) {
-      return res.status(401).json({ message: "Invalid token" });
+      return res.status(404).json({ message: "Not found" });
     }
 
     await User.findByIdAndUpdate(user._id, {
       verified: true,
-      verifyToken: null,
+      verificationToken: null,
     });
 
-    return res.json({ message: "User verified" });
+    return res.json({ message: "Verification successful" });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const newVerify = async (req, res, next) => {
+  const { email } = req.body;
+  try {
+    const { error } = emailSchema.validate(req.body, { convert: false });
+
+    if (error) {
+      return res.status(400).json({ message: error.message });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "Not found" });
+    }
+
+    if (user.verified) {
+      return res
+        .status(400)
+        .json({ message: "Verification has already been passed" });
+    }
+
+    await sendEmail({
+      to: email,
+      subject: `Welcome!`,
+      html: `Click on the link below to confirm your registration: <a href"http://localhost:8000/api/users/verify/${user.verificationToken}">Click</a>`,
+      text: `Open the link below to confirm your registration: http://localhost:8000/api/users/verify/${user.verificationToken}`,
+    });
+
+    return res.status(200).json({ message: "Verification email sent" });
   } catch (error) {
     return next(error);
   }
@@ -198,4 +234,5 @@ module.exports = {
   updateSubscription,
   updateAvatar,
   verify,
+  newVerify,
 };
