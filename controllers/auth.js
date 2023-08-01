@@ -1,4 +1,5 @@
 const User = require("../models/user");
+const crypto = require("node:crypto");
 const bcrypt = require("bcrypt");
 const gravatar = require("gravatar");
 require("dotenv").config();
@@ -7,6 +8,7 @@ const jwt = require("jsonwebtoken");
 const Jimp = require("jimp");
 const path = require("path");
 const fs = require("fs/promises");
+const { sendEmail } = require("../helpers");
 
 const avatarPath = path.resolve("public", "avatars");
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -28,12 +30,25 @@ const registered = async (req, res, next) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const verifyToken = crypto.randomUUID();
 
     const imgUrl = `${gravatar.url(
       email
     )}?d=https://i0.wp.com/png.pngitem.com/pimgs/s/80-800555_user-png-transparent-png.png?ssl=1&w=80`;
 
-    await User.create({ email, password: passwordHash, avatarURL: imgUrl });
+    await User.create({
+      email,
+      password: passwordHash,
+      avatarURL: imgUrl,
+      verifyToken,
+    });
+
+    await sendEmail({
+      to: email,
+      subject: `Welcome!`,
+      html: `Click on the link below to confirm your registration: <a href"http://localhost:8000/api/users/verify/${verifyToken}">Click</a>`,
+      text: `Open the link below to confirm your registration: http://localhost:8000/api/users/verify/${verifyToken}`,
+    });
 
     return res.status(201).json({ user: { email, subscription: "starter" } });
   } catch (error) {
@@ -55,6 +70,12 @@ const login = async (req, res, next) => {
 
     if (!user) {
       return res.status(401).json({ message: "Email or password is wrong" });
+    }
+
+    if (user.verified !== true) {
+      return res
+        .status(401)
+        .json({ message: "Please verify your account first" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -149,6 +170,26 @@ const updateAvatar = async (req, res, next) => {
   res.json({ avatarURL });
 };
 
+const verify = async (req, res, next) => {
+  const { token } = req.params;
+
+  try {
+    const user = await User.findOne({ verifyToken: token });
+    if (!user) {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+
+    await User.findByIdAndUpdate(user._id, {
+      verified: true,
+      verifyToken: null,
+    });
+
+    return res.json({ message: "User verified" });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 module.exports = {
   registered,
   login,
@@ -156,4 +197,5 @@ module.exports = {
   getCurrent,
   updateSubscription,
   updateAvatar,
+  verify,
 };
