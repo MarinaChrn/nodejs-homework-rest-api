@@ -144,7 +144,6 @@ const updateSubscription = async (req, res, next) => {
 };
 
 const updateAvatar = async (req, res, next) => {
-  console.log(req.user.id);
   if (!req.file) {
     res.status(400).json({ message: "Avatar must be provided!" });
   }
